@@ -432,30 +432,149 @@ select.field-in{appearance:none}
 .tp-save-bar{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--beige2)}
 .tp-del-btn{background:none;border:1px solid var(--rose);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--rose);cursor:pointer;transition:all .16s}
 .tp-del-btn:hover{background:var(--rose-p)}
+
+/* ── MOBILE LAYOUT ── */
+@media (max-width: 768px) {
+  .app { flex-direction: column; }
+  .sidebar { 
+    display: none !important; 
+  }
+  .main { 
+    width: 100% !important; 
+    padding-bottom: 70px;
+  }
+  .topbar {
+    padding: 8px 12px;
+  }
+  .tb-title { font-size: 16px; }
+  .center-col { padding: 10px 10px; }
+  .content-area { padding: 0; }
+  
+  /* Größere Touch-Targets */
+  .btn-primary, .btn-soft { 
+    min-height: 40px; 
+    font-size: 13px;
+  }
+  .field-in { 
+    min-height: 40px;
+    font-size: 16px; /* verhindert zoom auf iOS */
+  }
+  
+  /* Dashboard Grid anpassen */
+  .rp-grid { grid-template-columns: 1fr !important; }
+  
+  /* Cards */
+  .card { padding: 12px; margin-bottom: 10px; }
+}
+
+/* Mobile Bottom Navigation */
+#mobile-nav {
+  display: none;
+}
+@media (max-width: 768px) {
+  #mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--beige2);
+    z-index: 1000;
+    padding: 6px 0 8px;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,.06);
+  }
+  #mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(61,48,40,.5);
+    z-index: 998;
+  }
+  #mobile-menu-overlay.open { display: block; }
+  #mobile-sidebar {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 70px;
+    width: 260px;
+    background: var(--white);
+    z-index: 999;
+    overflow-y: auto;
+    box-shadow: 4px 0 20px rgba(0,0,0,.1);
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+  }
+  #mobile-sidebar.open {
+    display: block;
+    transform: translateX(0);
+  }
+}
+
 </style>
 <body>
+<script>
+(function(){
+  var KEY='fk_auth_v2';
+  var HASH='5db9e5f14a52696e69a7b3577c475dbac623255d004e6f06410688b1189b7650';
+  
+  async function sha256(msg){
+    var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg));
+    return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+  
+  function showLogin(){
+    var overlay=document.createElement('div');
+    overlay.id='fk-overlay';
+    overlay.style.cssText='position:fixed;inset:0;background:#f8f4ed;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:system-ui';
+    overlay.innerHTML='<div style="text-align:center;margin-bottom:28px"><div style="font-size:12px;color:#8a7a6a;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px">Persönliches Cockpit</div><div style="font-size:28px;font-family:Georgia,serif;color:#3d3028;font-weight:600">FühlKraft</div></div>'
+      +'<div style="background:white;border:1px solid #ddd0b8;border-radius:16px;padding:28px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,.1)">'
+      +'<div style="font-size:14px;color:#3d3028;font-weight:500;margin-bottom:4px">Willkommen, Nadine</div>'
+      +'<div style="font-size:12px;color:#8a7a6a;margin-bottom:16px">Bitte melde dich an.</div>'
+      +'<input type="password" id="fk-pw" placeholder="Passwort" style="width:100%;padding:10px 14px;border:1px solid #ddd0b8;border-radius:20px;font-size:14px;outline:none;background:#f8f4ed;color:#3d3028;margin-bottom:10px;box-sizing:border-box">'
+      +'<div id="fk-err" style="font-size:11px;color:#e53e3e;margin-bottom:8px;display:none">Falsches Passwort.</div>'
+      +'<button id="fk-btn" style="width:100%;padding:10px;background:#5c8060;color:white;border:none;border-radius:20px;font-size:14px;cursor:pointer;font-weight:500">Einloggen</button>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    
+    setTimeout(function(){
+      var inp=document.getElementById('fk-pw');
+      var btn=document.getElementById('fk-btn');
+      var err=document.getElementById('fk-err');
+      if(inp) inp.focus();
+      if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+      if(btn) btn.addEventListener('click',doLogin);
+      
+      async function doLogin(){
+        var val=inp?inp.value:'';
+        var h=await sha256(val);
+        if(h===HASH){
+          try{sessionStorage.setItem(KEY,'ok');}catch(e){}
+          var ov=document.getElementById('fk-overlay');
+          if(ov)ov.remove();
+        }else{
+          if(err)err.style.display='block';
+          if(inp){inp.value='';inp.focus();}
+        }
+      }
+    },100);
+  }
+  
+  try{
+    if(sessionStorage.getItem(KEY)==='ok')return;
+  }catch(e){}
+  
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',showLogin);
+  }else{
+    showLogin();
+  }
+})();
+</script>
 
-<div id="fk-login-screen" style="position:fixed;inset:0;background:#f8f4ed;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column">
-  <div style="text-align:center;margin-bottom:32px">
-    <div style="font-size:13px;color:#8a7a6a;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px">Persönliches Cockpit</div>
-    <div style="font-size:32px;font-family:Georgia,serif;color:#3d3028;font-weight:600">FühlKraft</div>
-  </div>
-  <div style="background:white;border:1px solid #ddd0b8;border-radius:16px;padding:32px;width:320px;box-shadow:0 4px 24px rgba(61,48,40,.1)">
-    <div style="font-size:14px;color:#3d3028;font-weight:500;margin-bottom:6px">Willkommen, Nadine</div>
-    <div style="font-size:12px;color:#8a7a6a;margin-bottom:20px">Bitte melde dich an um fortzufahren.</div>
-    <input type="password" id="fk-pw-inp" placeholder="Passwort" 
-      style="width:100%;padding:10px 14px;border:1px solid #ddd0b8;border-radius:20px;font-size:14px;outline:none;background:#f8f4ed;color:#3d3028;margin-bottom:10px"
-      onkeydown="if(event.key==='Enter')fkLogin()">
-    <div id="fk-pw-err" style="font-size:11px;color:#e53e3e;margin-bottom:8px;display:none">Falsches Passwort. Bitte erneut versuchen.</div>
-    <button onclick="fkLogin()" 
-      style="width:100%;padding:10px;background:#5c8060;color:white;border:none;border-radius:20px;font-size:14px;cursor:pointer;font-weight:500">
-      Einloggen
-    </button>
-    <div style="font-size:10px;color:#bfb0a0;text-align:center;margin-top:16px">
-      fuehlkraft-cockpit.netlify.app
-    </div>
-  </div>
-</div>
 
 <script>
 
@@ -496,37 +615,7 @@ function apiKeyEingeben(){
     showToast('Ungültiger Key – muss mit sk-ant- beginnen');
   }
 }
-(function(){
-  const HASH='5db9e5f14a52696e69a7b3577c475dbac623255d004e6f06410688b1189b7650';
-  const KEY='fk_auth_v1';
-  async function sha256(msg){
-    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg));
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-  function checkAuth(){
-    try{
-      if(sessionStorage.getItem(KEY)==='ok'){
-        document.getElementById('fk-login-screen').style.display='none';
-        return;
-      }
-    }catch(e){}
-  }
-  window.fkLogin=async function(){
-    const inp=document.getElementById('fk-pw-inp');
-    const err=document.getElementById('fk-pw-err');
-    const h=await sha256(inp.value);
-    if(h===HASH){
-      try{sessionStorage.setItem(KEY,'ok');}catch(e){}
-      document.getElementById('fk-login-screen').style.display='none';
-      err.style.display='none';
-    }else{
-      err.style.display='block';
-      inp.value='';
-      inp.focus();
-    }
-  };
-  checkAuth();
-})();
+
 </script>
 
 <div class="app">
@@ -4252,25 +4341,25 @@ Herzliche Grüße, Nadine 🐴
 </div>
 
 <!-- MODAL BACKDROPS -->
-<div id="modalBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal()">
+<div id="modalBackdrop" style="display:none;position:fixed;pointer-events:none;inset:0;background:rgba(0,0,0,.45);z-index:800;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal()">
   <div id="modalBox" style="background:var(--white);border-radius:var(--r);padding:24px;max-width:520px;width:92%;max-height:90vh;overflow-y:auto">
     <div id="modalTitle" style="font-size:16px;font-weight:500;color:var(--warm);margin-bottom:14px"></div>
     <div id="modalContent"></div>
   </div>
 </div>
-<div id="modal2Backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:810;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal2()">
+<div id="modal2Backdrop" style="display:none;position:fixed;pointer-events:none;inset:0;background:rgba(0,0,0,.45);z-index:810;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal2()">
   <div id="modal2Box" style="background:var(--white);border-radius:var(--r);padding:24px;max-width:480px;width:92%;max-height:90vh;overflow-y:auto">
     <div id="modal2Content"></div>
   </div>
 </div>
-<div id="modal3Backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:820;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal3()">
+<div id="modal3Backdrop" style="display:none;position:fixed;pointer-events:none;inset:0;background:rgba(0,0,0,.45);z-index:820;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal3()">
   <div id="modal3Box" style="background:var(--white);border-radius:var(--r);padding:24px;max-width:440px;width:92%;max-height:90vh;overflow-y:auto">
     <div id="modal3Content"></div>
   </div>
 </div>
 
 <!-- ADD NAV BACKDROP -->
-<div id="addNavBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:830;align-items:center;justify-content:center" onclick="if(event.target===this)closeAddNavModal()">
+<div id="addNavBackdrop" style="display:none;position:fixed;pointer-events:none;inset:0;background:rgba(0,0,0,.45);z-index:830;align-items:center;justify-content:center" onclick="if(event.target===this)closeAddNavModal()">
   <div style="background:var(--white);border-radius:var(--r);padding:24px;max-width:380px;width:92%">
     <div style="font-size:16px;font-weight:500;color:var(--warm);margin-bottom:14px">Bereich hinzufügen</div>
     <input class="field-in" id="addNavNameInp" placeholder="Name des Bereichs" style="margin-bottom:12px">
@@ -4282,7 +4371,7 @@ Herzliche Grüße, Nadine 🐴
 </div>
 
 <!-- PRODUKT MODAL BACKDROP -->
-<div id="prodModalBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:840;align-items:center;justify-content:center" onclick="if(event.target===this)closeProdModal()">
+<div id="prodModalBackdrop" style="display:none;position:fixed;pointer-events:none;inset:0;background:rgba(0,0,0,.45);z-index:840;align-items:center;justify-content:center" onclick="if(event.target===this)closeProdModal()">
   <div id="prodModalBox" style="background:var(--white);border-radius:var(--r);padding:24px;max-width:520px;width:92%;max-height:90vh;overflow-y:auto">
     <div id="prodModalTitle" style="font-size:16px;font-weight:500;color:var(--warm);margin-bottom:14px">Produkt</div>
     <div id="prodModalContent"></div>
@@ -4291,7 +4380,7 @@ Herzliche Grüße, Nadine 🐴
 
 
 <!-- PWA Install Banner -->
-<div id="pwa-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--warm);color:#fff;border-radius:20px;padding:10px 20px;font-size:12px;z-index:8000;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+<div id="pwa-banner" style="display:none;pointer-events:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--warm);color:#fff;border-radius:20px;padding:10px 20px;font-size:12px;z-index:8000;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
   <i class="ti ti-download" style="font-size:16px"></i>
   <span>Fühlkraft auf dem Homescreen installieren</span>
   <button id="pwa-install-btn" style="background:#fff;color:var(--warm);border:none;border-radius:12px;padding:4px 12px;font-size:11px;cursor:pointer;font-weight:500">Installieren</button>
@@ -4299,7 +4388,7 @@ Herzliche Grüße, Nadine 🐴
 </div>
 
 <!-- TAGES-POPUP -->
-<div id="tagesPopup" style="display:none;position:fixed;inset:0;background:rgba(61,48,40,.5);z-index:9000;align-items:center;justify-content:center">
+<div id="tagesPopup" style="display:none;position:fixed;inset:0;background:rgba(61,48,40,.5);z-index:9000;pointer-events:none;align-items:center;justify-content:center">
   <div style="background:var(--white);border-radius:var(--r);padding:28px;max-width:420px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:28px;margin-bottom:8px">🌿</div>
@@ -4394,7 +4483,7 @@ function navTo(id){
   // Kalender → Google Kalender in neuem Tab
   if(id==='kalender'){
     showView('generic');
-    document.querySelectorAll('.sb-item').forEach(b=>{b.classList.remove('active');if(b.dataset.nav===id)b.classList.add('active');});
+    document.querySelectorAll('.sb-item').forEach(b=>{b.classList.remove('active');if(b.dataset.nav===id)b.classList.add('active');});mobileNavUpdate(id);
     const c=document.getElementById('gSecContent');
     const ti=document.getElementById('gSecTit');
     const ic=document.getElementById('gSecIco');
@@ -4431,12 +4520,12 @@ function navTo(id){
   }
   if(genericMap[id]){
     showView('generic');
-    document.querySelectorAll('.sb-item').forEach(b=>{b.classList.remove('active');if(b.dataset.nav===id)b.classList.add('active');});
+    document.querySelectorAll('.sb-item').forEach(b=>{b.classList.remove('active');if(b.dataset.nav===id)b.classList.add('active');});mobileNavUpdate(id);
     const g=genericMap[id];openSectionWithThemes(id,g.t,g.i);
     return;
   }
   showView(id);
-  document.querySelectorAll('.sb-item').forEach(b=>{b.classList.remove('active');if(b.dataset.nav===id)b.classList.add('active');});
+  document.querySelectorAll('.sb-item').forEach(b=>{b.classList.remove('active');if(b.dataset.nav===id)b.classList.add('active');});mobileNavUpdate(id);
   document.querySelectorAll('.tb-pill').forEach(p=>p.classList.remove('active'));
   if(id==='home')document.querySelectorAll('.tb-pill')[0].classList.add('active');
   if(id==='einstellungen'){document.querySelectorAll('.tb-pill')[1].classList.add('active');loadSettingsPage();}
@@ -4939,14 +5028,14 @@ Markenprofil: ${mp['brand-werte']||''} | Tonalität: ${mp['stil-ton']||''} | Wun
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1000,
+      max_tokens:400,
       system:`Du bist ein erfahrener Instagram-Stratege und KI-Agent für Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Du analysierst ihre Instagram-Daten und gibst konkrete, umsetzbare Empfehlungen. Sprich sie mit "du" an. Antworte strukturiert mit klaren Punkten. Hier sind die aktuellen Daten:\n\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
   }).then(r=>r.json()).then(data=>{
     const text=data.content&&data.content[0]?data.content[0].text:'Ich bin in der Online-Version vollständig verfügbar.';
     const el=document.getElementById(replyId);
-    if(el){el.style.fontStyle='normal';el.style.color='var(--warm)';el.textContent=text;}
+    if(el){agentAntwortZeigen(replyId,text);}
     chat.scrollTop=chat.scrollHeight;
   }).catch((err)=>{console.error('API Error:',err);
     const el=document.getElementById(replyId);
@@ -5298,7 +5387,7 @@ function tpKiText(typ){
   card.scrollIntoView({behavior:'smooth',block:'start'});
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Produkttext-Agent von Nadine (Fühlkraft). Schreibe in ihrem Stil: ${mp['stil-ton']||'warm, authentisch, pferdenah'}. Nur den fertigen Text ausgeben.`,
       messages:[{role:'user',content:prompt}]
     })
@@ -6186,14 +6275,14 @@ Sperrliste: ${mp['sperr-woerter']||''}`.trim();
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:800,
+      max_tokens:400,
       system:`Du bist ein einfühlsamer KI Marken Coach für Nadine, die Inhaberin von Fühlkraft (Coaching rund um Pferde und Persönlichkeitsentwicklung). Du sprichst Nadine mit "du" an. Antworte auf Deutsch, warm und konkret. Hier ist das aktuelle Markenprofil:\n\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
   }).then(r=>r.json()).then(data=>{
     const text=data.content&&data.content[0]?data.content[0].text:'Ich bin gleich für dich da – in der Online-Version bin ich vollständig aktiviert.';
     const el=document.getElementById(replyId);
-    if(el){el.style.fontStyle='normal';el.style.color='var(--warm)';el.textContent=text;}
+    if(el){agentAntwortZeigen(replyId,text);}
     chat.scrollTop=chat.scrollHeight;
   }).catch((err)=>{console.error('API Error:',err);
     const el=document.getElementById(replyId);
@@ -6249,14 +6338,14 @@ Markenprofil: ${mp['brand-werte']||''} | Wunschkundin: ${mp['persona-name']||''}
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1000,
+      max_tokens:400,
       system:`Du bist ein erfahrener Etsy-Experte und KI-Agent für Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Analysiere ihre Etsy-Daten und gib konkrete, umsetzbare Empfehlungen. Sprich sie mit "du" an. Antworte auf Deutsch, strukturiert mit klaren Punkten. Hier sind die aktuellen Daten:\n\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
   }).then(r=>r.json()).then(data=>{
     const text=data.content&&data.content[0]?data.content[0].text:'Einen Moment …';
     const el=document.getElementById(replyId);
-    if(el){el.style.fontStyle='normal';el.style.color='var(--warm)';el.textContent=text;}
+    if(el){agentAntwortZeigen(replyId,text);}
     chat.scrollTop=chat.scrollHeight;
   }).catch((err)=>{console.error('API Error:',err);
     const el=document.getElementById(replyId);
@@ -6340,14 +6429,14 @@ Markenprofil-Werte: ${mp['brand-werte']||''}`;
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1000,
+      max_tokens:400,
       system:`Du bist ein einfühlsamer und konkreter Tagesplan-Agent für Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Du kennst ihren Tag und hilfst ihr konkret zu priorisieren und fokussiert zu bleiben. Sprich sie mit "du" an, sei warm aber direkt. Antworte auf Deutsch mit klaren, umsetzbaren Empfehlungen. Hier ist ihr heutiger Kontext:\n\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
   }).then(r=>r.json()).then(data=>{
     const text=data.content&&data.content[0]?data.content[0].text:'Einen Moment …';
     const el=document.getElementById(replyId);
-    if(el){el.style.fontStyle='normal';el.style.color='var(--warm)';el.textContent=text;}
+    if(el){agentAntwortZeigen(replyId,text);}
     chat.scrollTop=chat.scrollHeight;
   }).catch((err)=>{console.error('API Error:',err);
     const el=document.getElementById(replyId);
@@ -6435,7 +6524,7 @@ Typische Formulierungen: ${mp['stil-form']||''}`;
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1200,
+      max_tokens:400,
       system:`Du bist der Telegram-Agent von Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Du schreibst fertige, sofort verwendbare Telegram-Beiträge in Nadinens Stimme und Stil. Sprich die Community direkt an. Nutze Du-Form. Halte dich an die Sperrliste. Schreibe auf Deutsch. Gib NUR den fertigen Beitrag aus – ohne Erklärungen davor oder danach. Der Beitrag soll direkt kopiert und gesendet werden können.\n\nKontext:\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
@@ -6634,22 +6723,25 @@ Screenshots hochgeladen: ${(S.iaScreenshots||[]).length} Stück`;
     headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
-      system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1200,
-      system:`Du bist der Instagram Agent von Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Du analysierst ihren Instagram-Account und gibst konkrete, sofort umsetzbare Empfehlungen. Du kennst ihre Zielgruppe, ihren Stil und ihre Markenwerte. Sprich sie mit "du" an. Antworte auf Deutsch, strukturiert und klar. Wenn du Captions schreibst, nutze ihren Stil und beachte die Sperrliste.\n\nAktueller Kontext:\n${kontext}`,
+      max_tokens:400,
+      system:`Du bist Nadines Instagram-Beraterin für Fühlkraft. WICHTIG: Antworte KURZ und KONKRET – maximal 5-6 Sätze oder 3-4 Punkte. Kein langer Text. Warm, direkt, auf den Punkt. Du-Form. NIEMALS: perfekt, Druck, Leistung.\n\nKontext:\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
   }).then(r=>r.json()).then(data=>{
     const text=data.content&&data.content[0]?data.content[0].text:'Einen Moment …';
     const el=document.getElementById(replyId);
     if(el){
-      el.style.fontStyle='normal';el.style.color='var(--warm)';
-      el.innerHTML=`<div style="white-space:pre-wrap;margin-bottom:8px">${text}</div><button onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>showToast('Kopiert ✓'))" style="background:var(--lavender2);border:none;color:#fff;border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px"><i class='ti ti-copy' style='font-size:11px'></i> Kopieren</button>`;
+      agentAntwortZeigen(replyId, text);
+      const copyBtn=document.createElement('button');
+      copyBtn.onclick=()=>navigator.clipboard.writeText(text).then(()=>showToast('Kopiert ✓'));
+      copyBtn.style.cssText='background:var(--lavender2);border:none;color:#fff;border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;margin-top:6px;display:inline-flex;align-items:center;gap:4px';
+      copyBtn.innerHTML="<i class='ti ti-copy' style='font-size:11px'></i> Kopieren";
+      el.appendChild(copyBtn);
     }
     chat.scrollTop=chat.scrollHeight;
   }).catch((err)=>{console.error('API Error:',err);
     const el=document.getElementById(replyId);
-    if(el)el.innerHTML='<strong>Lokal nicht verfügbar.</strong><br>In der Online-Version analysiert der Agent deinen Instagram vollständig.';
+    if(el){el.textContent='Fehler – bitte erneut versuchen.';}
     chat.scrollTop=chat.scrollHeight;
   });
 }
@@ -6767,7 +6859,7 @@ Wünsche der Kundin: ${mp['persona-wuensche']||'k.A.'}`;
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1200,
+      max_tokens:400,
       system:`Du bist der Akademie Agent von Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Du hilfst ihr Kurse zu entwickeln die ihre Expertise, ihre Werte und ihre Zielgruppe perfekt treffen. Du kennst ihre Buyer Persona, ihr Markenprofil und ihre Mission. Sprich sie mit "du" an. Antworte auf Deutsch, strukturiert, warm und konkret. Gib immer umsetzbare nächste Schritte.\n\nAktueller Kurs-Kontext:\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
@@ -6881,7 +6973,7 @@ Markenwerte: ${mp['brand-werte']||'k.A.'} | Mission: ${mp['brand-mission']||'k.A
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:1200,
+      max_tokens:400,
       system:`Du bist der Analyse Agent von Nadine, Inhaberin von Fühlkraft (Pferdecoaching & Persönlichkeitsentwicklung). Du analysierst ihre Business-Zahlen und gibst konkrete, umsetzbare Empfehlungen. Sprich sie mit "du" an. Antworte auf Deutsch, strukturiert mit klaren Punkten und konkreten nächsten Schritten. Sei direkt und ehrlich aber warm.\n\nAktuelle Zahlen:\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
@@ -7179,7 +7271,7 @@ function dmKiSend(){
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages:[{role:'user',content:question}]})
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,system,messages:[{role:'user',content:question}]})
   }).then(r=>r.json()).then(data=>{
     const text=data.content&&data.content[0]?data.content[0].text:'In der Online-Version verfügbar.';
     const el=document.getElementById(replyId);
@@ -7585,7 +7677,7 @@ function csKiAusgabe(text){
   const mp=S.markenprofil||{};
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Content Agent von Nadine (Fühlkraft – Pferdecoaching). Stil: ${mp['stil-ton']||'warm, authentisch'}. Sperrliste: ${mp['sperr-woerter']||''}. Wunschkundin: ${mp['persona-name']||'Pferdefrau 35-50'}. Schreibe auf Deutsch, in Nadinens Stimme. Nur fertigen Content ausgeben.`,
       messages:[{role:'user',content:text}]
     })
@@ -7882,7 +7974,7 @@ function nlKi(typ){
   card.scrollIntoView({behavior:'smooth',block:'start'});
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Newsletter-Agent von Nadine (Fühlkraft – Pferdecoaching & Persönlichkeitsentwicklung). Schreibe Newsletter in Nadinens Stil: ${mp['stil-ton']||'warm, persönlich, authentisch'}. Sperrliste: ${mp['sperr-woerter']||''}. Wunschkundin: ${mp['persona-name']||'Pferdefrau 35-50'}. Schreibe auf Deutsch. Nur fertigen Text ausgeben.`,
       messages:[{role:'user',content:prompts[typ]}]
     })
@@ -7994,7 +8086,7 @@ Antworte auf Deutsch, warm, direkt und hilfreich. Kurze klare Antworten bevorzug
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
       system:'Du bist Nadines persönliche KI-Assistentin für Fühlkraft. KERNBOTSCHAFT: Begegnungen ohne Erwartungen. Vom Festhalten ins Loslassen. SCHREIBSTIL: Du-Form, herzlich, persönlich, wie ein Gespräch mit einer Freundin. Echte Geschichten statt Fachbegriffe. Einfach, klar, warm. Mehr Wahrnehmung als Analyse. SPERRLISTE - NIEMALS: perfekt, Perfektion, höher, schneller, besser, laut, plötzlich, heil sein, Druck, Leistungsversprechen, Heilversprechen, Guru-Sprache. BUYER PERSONA: Frauen 35-65, zwischen Verantwortung und Funktionieren verloren, sehnen sich nach Verbindung. TON: ruhig, warm, natürlich, klar, vertrauensvoll.',
-      max_tokens:600,
+      max_tokens:400,
       system,
       messages:kiHistory
     })
@@ -8083,7 +8175,7 @@ function wkErstellen(typ){
       fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body:JSON.stringify({
-          model:'claude-sonnet-4-5',max_tokens:1200,
+          model:'claude-sonnet-4-5',max_tokens:400,
           system:`Du bist der Content Agent von Nadine (Fühlkraft – Pferdecoaching & Persönlichkeitsentwicklung). Erstelle fertigen, sofort verwendbaren Content. Schreibe NUR den Content, keine Erklärungen davor/danach. Kontext: ${kontext}`,
           messages:[{role:'user',content:prompts[t]}]
         })
@@ -8660,7 +8752,7 @@ function azBlogKi(typ){
   if(kiText)kiText.textContent='Wird geschrieben …';
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Blog-Agent von Nadine (Fühlkraft – Pferdecoaching). Stil: ${mp['stil-ton']||'warm, authentisch'}. Sperrliste: ${mp['sperr-woerter']||''}. Nur fertigen Text ausgeben.`,
       messages:[{role:'user',content:prompts[typ]}]
     })
@@ -8800,7 +8892,7 @@ function azInfoKi(typ){
   const ki=document.getElementById('az-info-ki-output');const kiText=document.getElementById('az-info-ki-text');
   if(ki)ki.style.display='block';if(kiText)kiText.textContent='Wird erstellt …';
   fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Texte-Agent von Nadine (Fühlkraft). Schreibe in ihrem Stil: ${mp['stil-ton']||'warm, persönlich'}. Sperrliste: ${mp['sperr-woerter']||''}. Nur fertigen Text.`,
       messages:[{role:'user',content:prompt}]
     })
@@ -8928,7 +9020,7 @@ function azPKatKi(typ){
   kiOut.scrollIntoView({behavior:'smooth',block:'nearest'});
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Texte-Agent von Nadine (Fühlkraft – Pferdecoaching). Schreibe SEO-optimierte Texte für ihren AZOO Shop. Sperrliste: ${mp['sperr-woerter']||''}. Wunschkundin: ${mp['persona-name']||'Pferdefrau 35-50'}. Schreibe auf Deutsch. Nur den fertigen Text ausgeben.`,
       messages:[{role:'user',content:prompts[typ]}]
     })
@@ -8978,7 +9070,7 @@ Markenwerte: ${mp['brand-werte']||''} | Wunschkundin: ${mp['persona-name']||''}
 Tonalität: ${mp['stil-ton']||'warm, authentisch'}`;
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der AZOO Shop Agent von Nadine (Fühlkraft – Pferdecoaching & Persönlichkeitsentwicklung). Analysiere ihren AZOO Shop und gib konkrete, umsetzbare Empfehlungen. Sprich sie mit "du" an. Antworte auf Deutsch, strukturiert und warm.\n\nKontext:\n${kontext}`,
       messages:[{role:'user',content:question}]
     })
@@ -9964,8 +10056,28 @@ function ausbLoadVideos(){
 }
 
 // KI Agent
+// ── MARKDOWN → HTML PARSER ──
+function mdToHtml(text){
+  if(!text)return '';
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/#{1,3}\s+(.+)/g,'<strong style="color:var(--warm);font-size:13px;display:block;margin-top:8px">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^[-•]\s+(.+)/gm,'<div style="display:flex;gap:6px;margin:3px 0"><span style="color:var(--sage2);flex-shrink:0">→</span><span>$1</span></div>')
+    .replace(/^\d+\.\s+(.+)/gm,'<div style="display:flex;gap:6px;margin:3px 0"><span style="color:var(--sage2);font-weight:500;flex-shrink:0">•</span><span>$1</span></div>')
+    .replace(/\n\n/g,'<br>')
+    .replace(/\n/g,' ');
+}
+function agentAntwortZeigen(id,text){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.fontStyle='normal';
+  el.style.color='var(--warm)';
+  el.innerHTML=mdToHtml(text);
+}
+
 // ── TAGES-POPUP ──
-function popupZeigen(){
   // Nur einmal pro Tag zeigen
   const heute=new Date().toDateString();
   try{if(sessionStorage.getItem('fk_popup_heute')===heute)return;}catch(e){}
@@ -10024,12 +10136,12 @@ function popupZeigen(){
     zielEl.textContent=text.trim()||'Ziele noch nicht eingetragen.';
   }
 
-  popup.style.display='flex';
+  popup.style.display='flex';popup.style.pointerEvents='all';
 }
 
 function popupSchliessen(){
   const popup=document.getElementById('tagesPopup');
-  if(popup)popup.style.display='none';
+  if(popup){popup.style.display='none';popup.style.pointerEvents='none';}
   const heute=new Date().toDateString();
   try{sessionStorage.setItem('fk_popup_heute',heute);}catch(e){}
 }
@@ -10217,7 +10329,7 @@ function wbcBrainstorm(){
     headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
-      max_tokens:1000,
+      max_tokens:400,
       system:'Du bist Nadines Workbook-Kreativpartnerin (Fühlkraft, Pferdecoaching). Stil: warm, einfach, klar. Keine Fachbegriffe. NIEMALS: perfekt, Leistung, Heilversprechen.',
       messages:[{role:'user',content:`Thema: "${idee}"
 Format: ${formatLabel}
@@ -10254,7 +10366,7 @@ function wbcKapitel(){
     headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-5',
-      max_tokens:800,
+      max_tokens:400,
       system:'Du erstellst Workbook-Strukturen für Nadine (Fühlkraft). Antworte NUR mit einer nummerierten Liste der Kapitel. Format: "1. Kapitelname – kurze Beschreibung (1 Satz)". Kein anderer Text davor oder danach.',
       messages:[{role:'user',content:`Thema: "${idee}"
 Umfang: ${seitenanzahl}
@@ -10450,7 +10562,7 @@ function ausbKiSend(){
   const mp=S.markenprofil||{};
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:`Du bist der Ausbildungs-Agent von Nadine (Fühlkraft). Die Ausbildung heißt "Energiearbeit mit Mensch & Pferd – Premium Facilitator-Training" mit 34 Modulen. Stil: ${mp['stil-ton']||'warm, authentisch, tiefgründig'}. Sperrliste: ${mp['sperr-woerter']||''}. Wunschkundin: ${mp['persona-name']||'Pferdefrau 35-50'}. Antworte auf Deutsch.`,
       messages:[{role:'user',content:question}]
     })
@@ -10720,7 +10832,7 @@ function akrKi(){
   var ta=document.getElementById('akr_ta'); if(ta) ta.value='KI schreibt …';
   var mp=S.markenprofil||{};
   fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
       system:'Rechtstexte-Assistent für Nadine (Fühlkraft). Nur Text ausgeben.',
       messages:[{role:'user',content:AK_LAW_KI[akLawIdx]}]
     })
@@ -10812,7 +10924,7 @@ function gcZeigeDemo(){
   // Füge Info-Hinweis oben ein
   const hint = document.createElement('div');
   hint.style.cssText='background:var(--amber-p);border:1px solid var(--amber);border-radius:var(--rs);padding:8px 12px;margin-bottom:8px;font-size:11px;color:var(--amber2);display:flex;align-items:center;gap:8px;cursor:pointer';
-  hint.innerHTML='<i class="ti ti-calendar" style="font-size:14px"></i> Google Kalender noch nicht verbunden – <span style="text-decoration:underline" onclick="window.open('https://calendar.google.com/calendar/r','_blank')">direkt öffnen</span>';
+  hint.innerHTML='<i class="ti ti-calendar" style="font-size:14px"></i> Google Kalender noch nicht verbunden – <span style="text-decoration:underline" onclick="window.open(\'https://calendar.google.com/calendar/r\',\'_blank\')">direkt öffnen</span>';
   slots.parentNode.insertBefore(hint, slots);
 }
 
@@ -10843,6 +10955,7 @@ document.querySelectorAll('.sb-item')[0].classList.add('active');
 setTimeout(()=>{loadWetter();checkGeburtstage();},800);
 setTimeout(drawMindmap,200);
 setTimeout(()=>{cdInit();},300);
+setTimeout(sbInit, 1500);
 setTimeout(()=>{
   popupZeigen();
   // API Key aus localStorage laden falls vorhanden
@@ -10872,8 +10985,153 @@ if(pwaBtn) {
   });
 }
 
+
+// ── MOBILE NAVIGATION ──
+function mobileMenuOpen(){
+  document.getElementById('mobile-sidebar').classList.add('open');
+  document.getElementById('mobile-menu-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function mobileMenuClose(){
+  document.getElementById('mobile-sidebar').classList.remove('open');
+  document.getElementById('mobile-menu-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function mobileNavUpdate(id){
+  const btns=['home','instagram','ausbildung','kiagenten'];
+  btns.forEach(b=>{
+    const btn=document.getElementById('mob-btn-'+b);
+    if(!btn)return;
+    const isActive=b===id||(b==='ausbildung'&&id==='ausbildung');
+    const ico=btn.querySelector('i');
+    const txt=btn.querySelector('span');
+    if(ico)ico.style.color=isActive?'var(--sage2)':'var(--muted)';
+    if(txt)txt.style.color=isActive?'var(--sage2)':'var(--muted)';
+  });
+}
+
 window.addEventListener('resize',()=>{drawMindmap();if(S.heroImg)applyTransform();});
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── SUPABASE SYNC ──
+const SB_URL = 'https://gslqniklvtpcjgawvfhd.supabase.co';
+const SB_KEY = 'sb_publishable_9h6KLuYy6YCHPHkuvJpy7g_eLI7JZfp';
+let sbClient = null;
+let sbSyncTimer = null;
+
+function sbInit(){
+  try{
+    sbClient = supabase.createClient(SB_URL, SB_KEY);
+    console.log('Supabase verbunden ✓');
+    sbLoad();
+  }catch(e){
+    console.log('Supabase nicht verfügbar:', e);
+  }
+}
+
+async function sbSave(){
+  if(!sbClient) return;
+  try{
+    const data = JSON.stringify(S);
+    await sbClient.from('cockpit_data').upsert({
+      id: 'nadine',
+      data: data,
+      updated_at: new Date().toISOString()
+    });
+  }catch(e){
+    console.log('Supabase save error:', e);
+  }
+}
+
+async function sbLoad(){
+  if(!sbClient) return;
+  try{
+    const result = await sbClient.from('cockpit_data').select('*').eq('id','nadine').single();
+    if(result.data && result.data.data){
+      const remote = JSON.parse(result.data.data);
+      // Merge remote with local - remote wins
+      Object.keys(remote).forEach(k => {
+        if(S[k] === undefined || S[k] === null || S[k] === DEF[k]){
+          S[k] = remote[k];
+        }
+      });
+      // Re-render everything
+      try{applyAllImages();applyAllThemes();renderImpulse();renderDaySlots();renderTasks();renderEnergy();renderDone();renderGoals();renderFin();}catch(ex){}
+      showToast('Daten synchronisiert ✓');
+      console.log('Supabase data loaded ✓');
+    }
+  }catch(e){
+    console.log('Supabase load:', e.message);
+  }
+}
+
+// Override save to also sync to Supabase
+const _origSave = save;
+function save(){
+  _origSave();
+  // Debounce Supabase sync - wait 2 seconds after last change
+  clearTimeout(sbSyncTimer);
+  sbSyncTimer = setTimeout(sbSave, 2000);
+}
+</script>
+
+
+<!-- MOBILE BOTTOM NAV -->
+<div id="mobile-menu-overlay" onclick="mobileMenuClose()"></div>
+<div id="mobile-sidebar">
+  <div style="padding:16px;border-bottom:1px solid var(--beige2);display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:16px;font-weight:500;color:var(--warm);font-family:Georgia,serif">FühlKraft</div>
+    <button onclick="mobileMenuClose()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+  </div>
+  <div style="padding:12px 8px">
+    <div style="font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;margin-bottom:4px">Persönlich</div>
+    <button class="sb-item" data-nav="home" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-home"></i> Home</button>
+    <button class="sb-item" data-nav="fokusreise" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-map-2"></i> Fokusreise</button>
+    
+    <div style="font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;margin:8px 0 4px">Marketing</div>
+    <button class="sb-item" data-nav="markenprofil" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-leaf"></i> Markenprofil</button>
+    <button class="sb-item" data-nav="instagram" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-brand-instagram"></i> Instagram</button>
+    <button class="sb-item" data-nav="content" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-layout-grid"></i> Content Studio</button>
+    <button class="sb-item" data-nav="newsletter" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-mail"></i> Newsletter</button>
+    <button class="sb-item" data-nav="wonderlink" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-link"></i> Wonderlink</button>
+    
+    <div style="font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;margin:8px 0 4px">Angebote</div>
+    <button class="sb-item" data-nav="azoo" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-shopping-bag"></i> AZOO Shop</button>
+    <button class="sb-item" data-nav="etsy" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-gift"></i> Etsy Shop</button>
+    <button class="sb-item" data-nav="ausbildung" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-file-text"></i> Workbook</button>
+    <button class="sb-item" data-nav="kiagenten" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-robot"></i> KI Agenten</button>
+    
+    <div style="font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;margin:8px 0 4px">Organisation</div>
+    <button class="sb-item" data-nav="finanzen" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-coin"></i> Finanzen</button>
+    <button class="sb-item" data-nav="medien" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-photo"></i> Mediathek</button>
+    <button class="sb-item" data-nav="einstellungen" onclick="mobileMenuClose()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--warm);display:flex;align-items:center;gap:8px;border-radius:8px"><i class="ti ti-settings"></i> Einstellungen</button>
+  </div>
+</div>
+
+<nav id="mobile-nav">
+  <button onclick="navTo('home')" style="border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;min-width:50px" id="mob-btn-home">
+    <i class="ti ti-home" style="font-size:22px;color:var(--sage2)"></i>
+    <span style="font-size:9px;color:var(--sage2);font-weight:500">Home</span>
+  </button>
+  <button onclick="navTo('instagram')" style="border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;min-width:50px" id="mob-btn-instagram">
+    <i class="ti ti-brand-instagram" style="font-size:22px;color:var(--muted)"></i>
+    <span style="font-size:9px;color:var(--muted)">Instagram</span>
+  </button>
+  <button onclick="navTo('ausbildung')" style="border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;min-width:50px" id="mob-btn-ausbildung">
+    <i class="ti ti-file-text" style="font-size:22px;color:var(--muted)"></i>
+    <span style="font-size:9px;color:var(--muted)">Workbook</span>
+  </button>
+  <button onclick="navTo('kiagenten')" style="border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;min-width:50px" id="mob-btn-kiagenten">
+    <i class="ti ti-robot" style="font-size:22px;color:var(--muted)"></i>
+    <span style="font-size:9px;color:var(--muted)">KI</span>
+  </button>
+  <button onclick="mobileMenuOpen()" style="border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;min-width:50px">
+    <i class="ti ti-menu-2" style="font-size:22px;color:var(--muted)"></i>
+    <span style="font-size:9px;color:var(--muted)">Mehr</span>
+  </button>
+</nav>
+
 </body>
 </html>
